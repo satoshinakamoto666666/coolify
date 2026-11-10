@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="surreal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF00A0"/>
+      <stop offset="100%" stop-color="#9600FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#surreal-grad)"/>
+  <path d="M172.5 76H104C86.3 76 72 90.3 72 108C72 125.7 86.3 140 104 140H152C160.8 140 168 147.2 168 156C168 164.8 160.8 172 152 172H83.5C77.1 172 72 177.1 72 183.5C72 189.9 77.1 195 83.5 195H152C173.5 195 191 177.5 191 156C191 134.5 173.5 117 152 117H104C95.2 117 88 109.8 88 101C88 92.2 95.2 85 104 85H172.5C178.9 85 184 79.9 184 73.5C184 67.1 178.9 76 172.5 76Z" fill="#FFFFFF"/>
+</svg>

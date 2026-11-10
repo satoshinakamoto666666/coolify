@@ -1,0 +1,82 @@
+# documentation: https://surrealdb.com/docs/surrealdb/installation/running/docker
+# slogan: Distributed multi-model SurrealDB cluster backed by TiKV and Placement Driver (PD).
+# category: databases
+# tags: surrealdb,tikv,database,distributed,multi-model,graph,document,sql
+# logo: svgs/surrealdb.svg
+# port: 8000
+
+services:
+  pd0:
+    image: pingcap/pd:v8.5.0
+    command:
+      - --name=pd0
+      - --data-dir=/data/pd0
+      - --client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://pd0:2379
+      - --peer-urls=http://0.0.0.0:2380
+      - --advertise-peer-urls=http://pd0:2380
+      - --initial-cluster=pd0=http://pd0:2380
+    volumes:
+      - surrealdb-pd-data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider http://127.0.0.1:2379/pd/api/v1/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  tikv0:
+    image: pingcap/tikv:v8.5.0
+    depends_on:
+      pd0:
+        condition: service_healthy
+    command:
+      - --addr=0.0.0.0:20160
+      - --advertise-addr=tikv0:20160
+      - --status-addr=0.0.0.0:20180
+      - --pd=pd0:2379
+      - --data-dir=/data/tikv0
+    volumes:
+      - surrealdb-tikv-data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider http://127.0.0.1:20180/status || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  surrealdb:
+    image: surrealdb/surrealdb:v2
+    depends_on:
+      tikv0:
+        condition: service_healthy
+    command:
+      - start
+      - --log
+      - info
+      - --bind
+      - 0.0.0.0:8000
+      - --user
+      - ${SERVICE_USER_SURREALDB:-root}
+      - --pass
+      - ${SERVICE_PASSWORD_SURREALDB}
+      - tikv://pd0:2379
+    environment:
+      - SERVICE_URL_SURREALDB_8000
+      - SURREAL_USER=${SERVICE_USER_SURREALDB:-root}
+      - SURREAL_PASS=${SERVICE_PASSWORD_SURREALDB}
+    healthcheck:
+      test:
+        - CMD
+        - /surreal
+        - isready
+        - --conn
+        - http://127.0.0.1:8000
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
