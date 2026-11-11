@@ -1,0 +1,76 @@
+# documentation: https://docker-mailserver.github.io/docker-mailserver/latest/
+# slogan: Full-stack self-hosted multi-domain email server (SMTP, IMAP, DKIM/DMARC, Rspamd, Webmail)
+# category: email
+# tags: mail,smtp,imap,dkim,dmarc,rspamd,roundcube,multi-domain
+# logo: svgs/docker-mailserver.svg
+# port: 8080
+
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    hostname: ${MAIL_HOSTNAME:-mail.example.com}
+    environment:
+      - SERVICE_FQDN_WEBMAIL_8080
+      - OVERRIDE_HOSTNAME=${MAIL_HOSTNAME:-mail.example.com}
+      - DMS_VMAIL_UID=5000
+      - DMS_VMAIL_GID=5000
+      - ENABLE_RSPAMD=1
+      - ENABLE_CLAMAV=${ENABLE_CLAMAV:-0}
+      - ENABLE_OPENDKIM=1
+      - ENABLE_OPENDMARC=1
+      - ENABLE_POLICYD_SPF=1
+      - ENABLE_FAIL2BAN=1
+      - ENABLE_QUOTAS=1
+      - SSL_TYPE=${SSL_TYPE:-letsencrypt}
+      - PERMIT_DOCKER=network
+      - SPOOF_PROTECTION=1
+      - POSTMASTER_ADDRESS=${POSTMASTER_ADDRESS:-postmaster@example.com}
+    ports:
+      - "25:25"
+      - "465:465"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - dms-mail-data:/var/mail/
+      - dms-mail-state:/var/mail-state/
+      - dms-mail-logs:/var/log/mail/
+      - dms-mail-config:/tmp/docker-mailserver/
+      - dms-certs:/etc/dms/tls:ro
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  webmail:
+    image: roundcube/roundcubemail:latest
+    depends_on:
+      - mailserver
+    environment:
+      - SERVICE_FQDN_WEBMAIL_80
+      - ROUNDCUBEMAIL_DEFAULT_HOST=tls://mailserver
+      - ROUNDCUBEMAIL_DEFAULT_PORT=143
+      - ROUNDCUBEMAIL_SMTP_SERVER=tls://mailserver
+      - ROUNDCUBEMAIL_SMTP_PORT=587
+      - ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE=25M
+    volumes:
+      - roundcube-db:/var/roundcube/db
+      - roundcube-config:/var/roundcube/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  dms-mail-data:
+  dms-mail-state:
+  dms-mail-logs:
+  dms-mail-config:
+  dms-certs:
+  roundcube-db:
+  roundcube-config:

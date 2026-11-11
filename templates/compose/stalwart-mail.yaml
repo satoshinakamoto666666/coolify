@@ -1,0 +1,34 @@
+# documentation: https://stalw.art/docs/get-started
+# slogan: All-in-one modern Rust mail server (JMAP, IMAP4, SMTP, Multi-Domain Web Admin, DKIM/DMARC)
+# category: email
+# tags: mail,stalwart,jmap,imap,smtp,multi-domain,email
+# logo: svgs/stalwart.svg
+# port: 8080
+
+services:
+  stalwart-mail:
+    image: stalwartlabs/mail-server:latest
+    hostname: ${MAIL_HOSTNAME:-mail.example.com}
+    environment:
+      - SERVICE_FQDN_STALWART_8080
+      - SERVICE_USER_ADMIN=${STALWART_ADMIN_USER:-admin}
+      - SERVICE_PASSWORD_ADMIN
+    ports:
+      - "25:25"
+      - "465:465"
+      - "587:587"
+      - "993:993"
+      - "4190:4190"
+    volumes:
+      - stalwart-data:/opt/stalwart-mail
+      - stalwart-certs:/opt/stalwart-mail/etc/certs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  stalwart-data:
+  stalwart-certs:
